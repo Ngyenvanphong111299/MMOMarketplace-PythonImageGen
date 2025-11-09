@@ -78,7 +78,7 @@ def generate_html(
     
     html {{
       width: 1280px;
-      height: 720px;
+      height: 850px;
       overflow: hidden;
     }}
     
@@ -86,9 +86,9 @@ def generate_html(
       margin: 0;
       padding: 0;
       width: 1280px;
-      height: 720px;
-      min-height: 720px;
-      max-height: 720px;
+      height: 850px;
+      min-height: 850px;
+      max-height: 850px;
       position: relative;
       overflow: hidden;
       font-family: 'Inter', 'Roboto', sans-serif;
@@ -153,7 +153,7 @@ def generate_html(
     
     /* Title chính - lớn và nổi bật */
     .main-title {{
-      font-size: 80px;
+      font-size: 30px;
       font-weight: 900;
       line-height: 1.05;
       color: #FFFFFF;
