@@ -11,5 +11,5 @@ DEFAULT_BACKGROUND_IMAGE = "https://images.unsplash.com/photo-1507003211169-0a1d
 
 # Image dimensions
 IMAGE_WIDTH = 1280
-IMAGE_HEIGHT = 850
+IMAGE_HEIGHT = 720
 
