@@ -1,6 +1,6 @@
 # Dockerfile cho Python Image Generator Project
 # Sử dụng Python 3.11 slim image để giảm kích thước
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 # Đặt working directory
 WORKDIR /app
