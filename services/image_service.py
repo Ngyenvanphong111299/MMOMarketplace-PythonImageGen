@@ -1,10 +1,12 @@
 """
-Service để tạo ảnh từ HTML
+Service để tạo ảnh từ HTML sử dụng Playwright
 """
 import os
 import uuid
 import logging
-from html2image import Html2Image
+import tempfile
+import asyncio
+from playwright.async_api import async_playwright
 from PIL import Image
 
 # Image dimensions
@@ -16,9 +18,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def generate_image_from_html(html_content: str) -> bytes:
+async def generate_image_from_html_async(html_content: str) -> bytes:
     """
-    Tạo ảnh PNG từ HTML content
+    Tạo ảnh PNG từ HTML content sử dụng Playwright
     
     Args:
         html_content: HTML string
@@ -29,158 +31,75 @@ def generate_image_from_html(html_content: str) -> bytes:
     Raises:
         Exception: Nếu có lỗi khi tạo ảnh
     """
-    import tempfile as tf
-    
-    hti = Html2Image()
-    
-    # Hardcode Chrome/Chromium path - sử dụng wrapper script cho Docker
-    wrapper_path = "/usr/local/bin/chromium-wrapper.sh"
-    chrome_path = "/usr/bin/chromium"
-    
-    # Kiểm tra và sửa wrapper script nếu cần
-    if os.path.exists(wrapper_path):
-        # Đọc nội dung wrapper script
-        with open(wrapper_path, 'r') as f:
-            wrapper_content = f.read()
-        # Đảm bảo wrapper script có đầy đủ flags
-        if '--no-sandbox' not in wrapper_content or '--disable-dev-shm-usage' not in wrapper_content:
-            logger.warning(f"Wrapper script thiếu flags, sẽ tạo lại")
-            # Tạo lại wrapper script với đầy đủ flags
-            new_wrapper = '#!/bin/bash\nexec /usr/bin/chromium --no-sandbox --disable-dev-shm-usage --disable-gpu --headless --disable-software-rasterizer "$@"\n'
-            with open(wrapper_path, 'w') as f:
-                f.write(new_wrapper)
-            os.chmod(wrapper_path, 0o755)
-        hti.browser_executable = wrapper_path
-        logger.info(f"Sử dụng wrapper script: {wrapper_path}")
-    elif os.path.exists(chrome_path):
-        hti.browser_executable = chrome_path
-        logger.info(f"Sử dụng chromium trực tiếp: {chrome_path}")
-    
-    # Thiết lập temp_dir cho Html2Image để lưu file tạm
-    # Html2Image cần quyền ghi vào thư mục này
-    
-    # Tạo thư mục temp nếu chưa có và thiết lập output path
-    temp_dir = os.path.join(os.getcwd(), "temp")
-    os.makedirs(temp_dir, exist_ok=True)
-    hti.output_path = temp_dir
-    
-    # Thiết lập size để đảm bảo render đúng kích thước
-    hti.size = (IMAGE_WIDTH, IMAGE_HEIGHT)
-    
-    # Tạo tên file tạm unique
-    temp_filename = f"temp_{uuid.uuid4().hex}.png"
-    temp_filepath = os.path.join(hti.output_path, temp_filename)
-    
-    # Lưu HTML vào file tạm
     temp_html_path = None
+    temp_filepath = None
     
     try:
-        # Lưu HTML vào file tạm để đảm bảo render đầy đủ
-        with tf.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8', dir=temp_dir) as temp_html:
-            temp_html.write(html_content)
-            temp_html_path = temp_html.name
+        # Tạo thư mục temp nếu chưa có
+        temp_dir = os.path.join(os.getcwd(), "temp")
+        os.makedirs(temp_dir, exist_ok=True)
         
-        logger.info(f"Tạo ảnh từ HTML, output path: {hti.output_path}, file: {temp_filename}")
-        logger.info(f"HTML file path: {temp_html_path}")
-        logger.info(f"Expected image path: {temp_filepath}")
+        # Tạo file HTML tạm
+        temp_filename = f"temp_{uuid.uuid4().hex}.html"
+        temp_html_path = os.path.join(temp_dir, temp_filename)
         
-        # Screenshot với size cố định - thử dùng html_str trước
-        screenshot_paths = None
-        import time
+        with open(temp_html_path, 'w', encoding='utf-8') as f:
+            f.write(html_content)
         
-        try:
-            # Thử dùng html_str trực tiếp
-            screenshot_paths = hti.screenshot(
-                html_str=html_content,
-                save_as=temp_filename,
-                size=(IMAGE_WIDTH, IMAGE_HEIGHT)
+        logger.info(f"Tạo ảnh từ HTML, HTML file: {temp_html_path}")
+        
+        # Tạo file ảnh tạm
+        image_filename = f"temp_{uuid.uuid4().hex}.png"
+        temp_filepath = os.path.join(temp_dir, image_filename)
+        
+        # Sử dụng Playwright async để tạo screenshot
+        async with async_playwright() as p:
+            # Khởi động browser với các options cần thiết cho Docker
+            browser = await p.chromium.launch(
+                headless=True,
+                args=[
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu',
+                    '--disable-software-rasterizer',
+                    '--disable-extensions',
+                ]
             )
-            logger.info(f"Screenshot returned paths: {screenshot_paths}")
-        except Exception as screenshot_error:
-            logger.warning(f"Screenshot với html_str thất bại: {screenshot_error}, thử với html_file")
-            # Fallback: dùng html_file
+            
             try:
-                screenshot_paths = hti.screenshot(
-                    html_file=temp_html_path,
-                    save_as=temp_filename,
-                    size=(IMAGE_WIDTH, IMAGE_HEIGHT)
+                # Tạo context với viewport size
+                context = await browser.new_context(
+                    viewport={'width': IMAGE_WIDTH, 'height': IMAGE_HEIGHT},
+                    device_scale_factor=1
                 )
-                logger.info(f"Screenshot với html_file returned paths: {screenshot_paths}")
-            except Exception as file_error:
-                logger.error(f"Screenshot với html_file cũng thất bại: {file_error}")
-                raise Exception(f"Không thể tạo screenshot: {file_error}")
-        
-        # Đợi một chút để đảm bảo file được tạo xong
-        # Tăng delay để đảm bảo Chromium hoàn thành việc tạo file
-        time.sleep(3)
-        
-        # Thử đợi file xuất hiện với timeout
-        max_wait = 10  # seconds
-        wait_interval = 0.5
-        waited = 0
-        while waited < max_wait:
-            if os.path.exists(temp_filepath):
-                logger.info(f"File đã xuất hiện sau {waited} giây: {temp_filepath}")
-                break
-            time.sleep(wait_interval)
-            waited += wait_interval
-        
-        # screenshot() có thể trả về list các đường dẫn file
-        if screenshot_paths and len(screenshot_paths) > 0:
-            # Lấy đường dẫn đầu tiên nếu có
-            actual_path = screenshot_paths[0] if isinstance(screenshot_paths, list) else screenshot_paths
-            # Kiểm tra xem đường dẫn có tồn tại không
-            if actual_path and os.path.exists(actual_path):
-                temp_filepath = actual_path
-                logger.info(f"Sử dụng đường dẫn từ screenshot(): {temp_filepath}")
-            else:
-                # Nếu đường dẫn từ screenshot() không tồn tại, thử normalize path
-                if actual_path:
-                    normalized_path = os.path.normpath(actual_path)
-                    if os.path.exists(normalized_path):
-                        temp_filepath = normalized_path
-                        logger.info(f"Sử dụng đường dẫn normalized từ screenshot(): {temp_filepath}")
-                    else:
-                        # Thử với absolute path
-                        abs_path = os.path.abspath(actual_path)
-                        if os.path.exists(abs_path):
-                            temp_filepath = abs_path
-                            logger.info(f"Sử dụng absolute path từ screenshot(): {temp_filepath}")
-                        else:
-                            logger.warning(f"Đường dẫn từ screenshot() không tồn tại: {actual_path}, sẽ tìm ở các vị trí khác")
-        
-        # Kiểm tra file ảnh đã tạo
-        if not os.path.exists(temp_filepath):
-            # Thử tìm file ở các vị trí khác có thể
-            possible_paths = [
-                os.path.join(os.getcwd(), temp_filename),
-                os.path.join("/tmp", temp_filename),
-                os.path.join(temp_dir, temp_filename),
-                temp_filepath
-            ]
-            # Thêm các đường dẫn từ screenshot() nếu có
-            if screenshot_paths:
-                if isinstance(screenshot_paths, list):
-                    possible_paths.extend(screenshot_paths)
-                else:
-                    possible_paths.append(screenshot_paths)
-            
-            found = False
-            for path in possible_paths:
-                if path and os.path.exists(path):
-                    temp_filepath = path
-                    found = True
-                    logger.info(f"Tìm thấy file ảnh tại: {temp_filepath}")
-                    break
-            
-            if not found:
-                # Liệt kê tất cả file trong temp_dir để debug
-                try:
-                    files_in_temp = os.listdir(temp_dir)
-                    logger.error(f"Các file trong temp_dir: {files_in_temp}")
-                except:
-                    pass
-                raise Exception(f"File ảnh không được tạo. Đã kiểm tra: {possible_paths}")
+                
+                # Tạo page
+                page = await context.new_page()
+                
+                # Load HTML từ file
+                # Sử dụng file:// protocol để load local file
+                file_url = f"file://{temp_html_path}"
+                await page.goto(file_url, wait_until='networkidle', timeout=30000)
+                
+                # Đợi một chút để đảm bảo render xong
+                await page.wait_for_timeout(1000)
+                
+                # Tạo screenshot
+                screenshot_bytes = await page.screenshot(
+                    type='png',
+                    full_page=False,
+                    clip={'x': 0, 'y': 0, 'width': IMAGE_WIDTH, 'height': IMAGE_HEIGHT}
+                )
+                
+                logger.info(f"Đã tạo screenshot thành công, size: {len(screenshot_bytes)} bytes")
+                
+                # Lưu vào file tạm để xử lý với Pillow
+                with open(temp_filepath, 'wb') as f:
+                    f.write(screenshot_bytes)
+                
+            finally:
+                await browser.close()
         
         # Crop transparent borders bằng Pillow và resize về 1280x720
         try:
@@ -230,6 +149,8 @@ def generate_image_from_html(html_content: str) -> bytes:
             
     except Exception as e:
         logger.error(f"Lỗi khi tạo ảnh: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         # Đảm bảo xóa file nếu có lỗi
         if temp_filepath and os.path.exists(temp_filepath):
             try:
@@ -245,3 +166,11 @@ def generate_image_from_html(html_content: str) -> bytes:
             except:
                 pass
 
+
+# Giữ lại function sync để tương thích nếu cần
+def generate_image_from_html(html_content: str) -> bytes:
+    """
+    Wrapper function để chạy async function trong sync context
+    Chỉ dùng khi không có event loop đang chạy
+    """
+    return asyncio.run(generate_image_from_html_async(html_content))

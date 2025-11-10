@@ -54,22 +54,37 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Cài đặt Chrome/Chromium cho html2image
-# Sử dụng Chromium từ Debian repository (nhẹ hơn và dễ cài hơn)
-RUN apt-get update && \
-    apt-get install -y chromium chromium-driver && \
-    rm -rf /var/lib/apt/lists/*
-
-# Set Chrome binary path cho html2image
-ENV CHROME_BIN=/usr/bin/chromium
-ENV CHROMIUM_BIN=/usr/bin/chromium
-
 # Copy toàn bộ code vào container
 COPY . .
 
-# Tạo wrapper script cho Chromium
-RUN echo '#!/bin/bash\n exec /usr/bin/chromium --no-sandbox --disable-dev-shm-usage --disable-gpu "$@"' > /usr/local/bin/chromium-wrapper.sh && \
-    chmod +x /usr/local/bin/chromium-wrapper.sh
+# Cài đặt Playwright browsers (chỉ Chromium)
+# Cài đặt dependencies thủ công trước, sau đó cài Chromium
+RUN apt-get update && \
+    apt-get install -y \
+    libnss3 \
+    libnspr4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libdbus-1-3 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libpango-1.0-0 \
+    libcairo2 \
+    libatspi2.0-0 \
+    libxshmfence1 \
+    fonts-liberation \
+    fonts-unifont \
+    && rm -rf /var/lib/apt/lists/*
+
+# Cài đặt Chromium từ Playwright
+RUN playwright install chromium
 
 # Expose port 8000 cho FastAPI
 EXPOSE 8000
