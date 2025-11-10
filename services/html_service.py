@@ -5,7 +5,10 @@ import random
 from typing import Optional, Tuple
 from services.pexels_service import get_pexels_image
 from services.logo_service import get_logo_base64
-from config import DEFAULT_BACKGROUND_IMAGE
+from app.config import settings
+
+# Default fallback image
+DEFAULT_BACKGROUND_IMAGE = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=1200&fit=crop"
 
 
 def generate_html(
@@ -65,7 +68,7 @@ def generate_html(
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=1280, height=850, initial-scale=1.0" />
   <title>Image Generator</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@800;900&family=Roboto:wght@700;900&display=swap');
@@ -79,7 +82,11 @@ def generate_html(
     html {{
       width: 1280px;
       height: 850px;
-      overflow: hidden;
+      overflow: visible;
+      display: block;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }}
     
     body {{
@@ -88,18 +95,20 @@ def generate_html(
       width: 1280px;
       height: 850px;
       min-height: 850px;
-      max-height: 850px;
       position: relative;
-      overflow: hidden;
+      overflow: visible;
       font-family: 'Inter', 'Roboto', sans-serif;
+      display: block;
+      box-sizing: border-box;
     }}
     
     /* Background image */
     .background-image {{
       position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
+      top: 0;
+      left: 0;
+      width: 1280px;
+      height: 850px;
       object-fit: cover;
       object-position: center 30%;
       z-index: 0;
@@ -110,10 +119,8 @@ def generate_html(
       position: absolute;
       top: 0;
       left: 0;
-      right: 0;
-      bottom: 0;
-      width: 100%;
-      height: 100%;
+      width: 1280px;
+      height: 850px;
       background: linear-gradient(
         to bottom,
         rgba(0, 0, 0, 0.3) 0%,
@@ -277,6 +284,8 @@ def generate_html(
     </div>
     {f'<div class="watermark-logo">{logo_html}</div>' if logo_html else ''}
   </div>
+  <!-- Marker ở cuối để đảm bảo render đầy đủ viewport 850px -->
+  <div style="position: absolute; bottom: 0; left: 0; width: 1280px; height: 5px; z-index: 9999; background: transparent; pointer-events: none;"></div>
 </body>
 </html>"""
     

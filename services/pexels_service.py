@@ -3,7 +3,9 @@ Service để lấy ảnh từ Pexels API
 """
 import requests
 import random
-from config import PEXELS_API_KEY
+
+# Hardcode Pexels API key
+PEXELS_API_KEY = "EY2W2pV8aA0CN0sJOrPfKOl6osKlxnWnp9gdHo1HfwnaKuELZJHP7BNm"
 
 
 def get_pexels_image(query: str = "ai technology"):
