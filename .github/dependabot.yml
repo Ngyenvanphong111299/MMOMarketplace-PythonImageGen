@@ -13,6 +13,8 @@ updates:
     labels:
       - "dependencies"
       - "python"
+    # Chỉ định file requirements.txt cụ thể
+    target-branch: "main"
     
   # Update Docker dependencies
   - package-ecosystem: "docker"
