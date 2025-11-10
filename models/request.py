@@ -1,8 +1,8 @@
 """
 Request models cho API
 """
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, Field
+from typing import Optional, Literal
 
 
 class ImageRequest(BaseModel):
@@ -14,4 +14,8 @@ class ImageRequest(BaseModel):
     background_theme: str
     logo_url: Optional[str] = None
     show_logo: bool = True
+    textAlign: Optional[Literal["left", "right", "center"]] = Field(
+        default=None,
+        description="Vị trí text: left, right, hoặc center. Nếu không truyền sẽ random."
+    )
 

@@ -6,7 +6,7 @@ from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from models.request import ImageRequest
 from services.html_service import generate_html
-from services.image_service import generate_image_from_html
+from services.image_service import generate_image_from_html_async
 
 # Import security modules
 from app.middleware.rate_limit import RateLimitMiddleware
@@ -53,6 +53,7 @@ async def generate_image(
             - background_theme: Chủ đề để tìm ảnh từ Pexels
             - logo_url: URL logo (optional)
             - show_logo: Hiển thị logo hay không (optional)
+            - textAlign: Vị trí text - "left", "right", hoặc "center" (optional, mặc định random)
         api_key_verified: Xác thực API key (tự động từ dependency)
             
     Returns:
@@ -72,11 +73,12 @@ async def generate_image(
             content=request.content,
             background_theme=request.background_theme,
             logo_url=request.logo_url,
-            show_logo=request.show_logo
+            show_logo=request.show_logo,
+            text_align=request.textAlign
         )
         
-        # Tạo ảnh từ HTML
-        image_data = generate_image_from_html(html_content)
+        # Tạo ảnh từ HTML (async)
+        image_data = await generate_image_from_html_async(html_content)
         
         return Response(content=image_data, media_type="image/png")
             

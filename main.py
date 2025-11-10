@@ -53,6 +53,7 @@ async def generate_image(
             - background_theme: Chủ đề để tìm ảnh từ Pexels
             - logo_url: URL logo (optional)
             - show_logo: Hiển thị logo hay không (optional)
+            - textAlign: Vị trí text - "left", "right", hoặc "center" (optional, mặc định random)
         api_key_verified: Xác thực API key (tự động từ dependency)
             
     Returns:
@@ -72,7 +73,8 @@ async def generate_image(
             content=request.content,
             background_theme=request.background_theme,
             logo_url=request.logo_url,
-            show_logo=request.show_logo
+            show_logo=request.show_logo,
+            text_align=request.textAlign
         )
         
         # Tạo ảnh từ HTML (async)

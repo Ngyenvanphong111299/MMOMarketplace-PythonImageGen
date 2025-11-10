@@ -11,7 +11,7 @@ from PIL import Image
 
 # Image dimensions
 IMAGE_WIDTH = 1280
-IMAGE_HEIGHT = 850
+IMAGE_HEIGHT = 720
 
 # Thiết lập logging
 logging.basicConfig(level=logging.INFO)

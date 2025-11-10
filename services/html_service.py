@@ -18,7 +18,8 @@ def generate_html(
     content: str,
     background_theme: str,
     logo_url: Optional[str] = None,
-    show_logo: bool = True
+    show_logo: bool = True,
+    text_align: Optional[str] = None
 ) -> str:
     """
     Tạo HTML content từ các tham số
@@ -31,6 +32,7 @@ def generate_html(
         background_theme: Chủ đề để tìm ảnh từ Pexels
         logo_url: URL logo (optional)
         show_logo: Hiển thị logo hay không
+        text_align: Vị trí text (left, right, center). Nếu None sẽ random.
         
     Returns:
         HTML string
@@ -43,8 +45,12 @@ def generate_html(
     else:
         image_url = DEFAULT_BACKGROUND_IMAGE
     
-    # Random vị trí text: left, center, right
-    text_position = random.choice(["left", "center", "right"])
+    # Xác định vị trí text: sử dụng text_align nếu có, nếu không thì random
+    if text_align and text_align.lower() in ["left", "right", "center"]:
+        text_position = text_align.lower()
+    else:
+        # Random vị trí text: left, center, right
+        text_position = random.choice(["left", "center", "right"])
     
     # Góc xoay dựa trên vị trí text
     if text_position == "left":
@@ -68,7 +74,7 @@ def generate_html(
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=1280, height=850, initial-scale=1.0" />
+  <meta name="viewport" content="width=1280, height=720, initial-scale=1.0" />
   <title>Image Generator</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@800;900&family=Roboto:wght@700;900&display=swap');
@@ -81,7 +87,7 @@ def generate_html(
     
     html {{
       width: 1280px;
-      height: 850px;
+      height: 720px;
       overflow: visible;
       display: block;
       margin: 0;
@@ -93,8 +99,8 @@ def generate_html(
       margin: 0;
       padding: 0;
       width: 1280px;
-      height: 850px;
-      min-height: 850px;
+      height: 720px;
+      min-height: 720px;
       position: relative;
       overflow: visible;
       font-family: 'Inter', 'Roboto', sans-serif;
@@ -108,7 +114,7 @@ def generate_html(
       top: 0;
       left: 0;
       width: 1280px;
-      height: 850px;
+      height: 720px;
       object-fit: cover;
       object-position: center 30%;
       z-index: 0;
@@ -120,7 +126,7 @@ def generate_html(
       top: 0;
       left: 0;
       width: 1280px;
-      height: 850px;
+      height: 720px;
       background: linear-gradient(
         to bottom,
         rgba(0, 0, 0, 0.3) 0%,
@@ -160,7 +166,7 @@ def generate_html(
     
     /* Title chính - lớn và nổi bật */
     .main-title {{
-      font-size: 30px;
+      font-size: 40px;
       font-weight: 900;
       line-height: 1.05;
       color: #FFFFFF;
@@ -284,7 +290,7 @@ def generate_html(
     </div>
     {f'<div class="watermark-logo">{logo_html}</div>' if logo_html else ''}
   </div>
-  <!-- Marker ở cuối để đảm bảo render đầy đủ viewport 850px -->
+  <!-- Marker ở cuối để đảm bảo render đầy đủ viewport 720px -->
   <div style="position: absolute; bottom: 0; left: 0; width: 1280px; height: 5px; z-index: 9999; background: transparent; pointer-events: none;"></div>
 </body>
 </html>"""
